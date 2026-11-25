@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pokémon Stat Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday hobby tool: playful, but every number exact
+   IDEA the in-game summary screen: stat hexagon, red/blue nature marks, yellow EV gauge
+   PICTURE large live stat hexagon, final stats drawn over the untrained baseline
+   COLOUR white ground, summary red band, IV blue, EV yellow; night = same on near-black
+   TYPE Rubik 800 + Rubik
+   LAYOUT laptop: sticky hexagon left, settings + six stat cards right; phone: title, hexagon, settings, cards */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#121214);--ink:light-dark(#18181b,#f1f1f3);--mut:light-dark(#5f5f68,#a5a5af);--line:light-dark(#e2e2e7,#2e2e34);--panel:light-dark(#f6f6f8,#1b1b1f);--hdr:light-dark(#e3350d,#a8250a);--red:light-dark(#e3350d,#ff5a33);--blue:light-dark(#2f6fdc,#6d9dff);--yel:light-dark(#f0ae00,#ffd23f);--base:light-dark(#4a4a52,#8e8e99);--flat:light-dark(#c9c9d1,#4a4a52);--soft:light-dark(#fdefea,#1c1311)}
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 Rubik,system-ui,sans-serif;overflow-x:clip}
+.band{padding-block:clamp(20px,3vw,40px);padding-left:max(5vw,16px);padding-right:max(5vw,16px)}
+.in{max-width:1240px;margin:0 auto}
+header.band{background:var(--hdr);color:#fff;padding-block:clamp(20px,3vw,30px)}
+h1{font-size:clamp(32px,5vw,46px);line-height:1.05;letter-spacing:-.02em;margin:0 0 8px;font-weight:800;text-wrap:balance}
+header p{margin:0;max-width:64ch}
+h2{font-size:clamp(24px,3vw,30px);line-height:1.1;letter-spacing:-.01em;margin:0 0 6px;font-weight:800}
+h3{font-size:18px;margin:0 0 10px;font-weight:700}
+.grid{display:grid;gap:clamp(16px,2.5vw,28px);grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:start}
+.left{position:sticky;top:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.fig{position:relative;min-height:340px;height:380px}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+svg text{paint-order:stroke;stroke:var(--panel);stroke-width:4px;font-family:Rubik,system-ui,sans-serif}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--mut);margin-top:4px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:18px;height:12px;border-radius:3px;display:inline-block}
+.tot{margin:8px 0 14px;font-size:15px}
+.tot b{font-variant-numeric:tabular-nums}
+.evhead{display:flex;justify-content:space-between;align-items:baseline;font-weight:600;margin-bottom:6px}
+.evhead b{font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.evhead b.warn{color:var(--red)}
+.meter{height:14px;border-radius:7px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--yel);transition:width .25s}
+.note{font-size:14px;color:var(--mut);margin:6px 0 0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.btn{font:inherit;font-size:15px;min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--mut)}
+.btn:active{transform:translateY(1px)}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.set{margin-bottom:14px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(10em,1fr));gap:12px}
+.f{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--mut);font-weight:500}
+input[type=search]{width:100%}
+select,input[type=number],input[type=search]{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;min-height:44px;padding:0 10px}
+input[type=number]{width:4.4em;text-align:right;font-variant-numeric:tabular-nums;padding:0 8px}
+.lv{display:flex;align-items:center;gap:8px}
+input[type=range]{flex:1;height:44px;margin:0;accent-color:var(--c,var(--red));cursor:pointer}
+.pre{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.pre>span{width:2.6em;font-weight:600;font-size:14px;color:var(--mut)}
+.key{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mut);margin:0 2px 10px}
+.key span{display:inline-flex;align-items:center;gap:5px}
+.cards{display:grid;gap:10px}
+.card{container-type:inline-size;border:1px solid var(--line);border-radius:12px;padding:10px 14px 12px;background:var(--bg)}
+.top{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap}
+.nm{font-weight:700;font-size:17px;white-space:nowrap}
+.mk{font-size:13px;font-weight:700;white-space:nowrap}
+.up{color:var(--red)}
+.dn{color:var(--blue)}
+.bs{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:14px;color:var(--mut)}
+.bs input{width:4em;min-height:36px}
+.fin{font-size:32px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;min-width:2.4em;text-align:right}
+.ctl{display:grid;grid-template-columns:minmax(0,1fr);gap:0 18px}
+@container (min-width:520px){.ctl{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.sl{display:flex;align-items:center;gap:8px}
+.sl>b{width:1.5em;font-size:13px;color:var(--mut)}
+.iv{--c:var(--blue)}
+.ev{--c:var(--yel)}
+.ht{font:inherit;font-size:13px;font-weight:700;height:36px;min-width:44px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--mut);cursor:pointer}
+.ht[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:#fff}
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--panel);margin-top:4px}
+.bar i{display:block;height:100%;transition:width .2s}
+.lost{background:repeating-linear-gradient(135deg,var(--blue) 0 3px,transparent 3px 6px)}
+.sum{margin:6px 0 0;font-size:13px;color:var(--mut)}
+.low{background:var(--soft)}
+.low .panel{background:var(--bg)}
+.lead{margin:0 0 14px;max-width:70ch}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chip{font:inherit;font-size:15px;min-height:44px;padding:0 14px;border-radius:22px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.chip[aria-pressed=true]{background:var(--hdr);border-color:var(--hdr);color:#fff;font-weight:600}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(14px,2vw,24px);align-items:start}
+.math{width:100%;border-collapse:collapse;font-size:15px}
+.math td{padding:8px 0;border-bottom:1px solid var(--line)}
+.math td:last-child{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;padding-left:12px}
+.math tr:last-child td{border:0;font-size:20px;font-weight:800;padding-top:12px}
+.res{font-size:clamp(28px,4vw,40px);font-weight:800;line-height:1.1;margin:14px 0 0}
+.strip{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:3px;margin-top:14px}
+.strip span{height:32px;display:grid;place-items:center;font-size:13px;border-radius:5px;background:var(--panel);color:var(--mut);font-variant-numeric:tabular-nums}
+.strip span.on{background:var(--blue);color:#fff;font-weight:700}
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--line);margin:20px 0 14px;overflow-x:auto;scrollbar-width:none}
+.tabs button{font:inherit;font-size:16px;font-weight:600;min-height:48px;padding:0 16px;border:0;background:none;color:var(--mut);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;flex:none}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--red)}
+[hidden]{display:none!important}
+.expl{margin:0;padding-left:1.1em;display:grid;gap:8px}
+@media(max-width:480px){.tabs button{padding:0 11px;font-size:15px}}
+.foot{font-size:14px;color:var(--mut);margin:18px 0 0}
+@media(max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}.left{position:static}.fig{height:330px;min-height:300px}}
+@media(max-width:640px){.two{grid-template-columns:minmax(0,1fr)}.panel{padding:12px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="band"><div class="in">
+<h1>Pokémon stat simulator</h1>
+<p>Pick a Pokémon and nature, move the IV and EV sliders, and see exactly how each piece builds the final stats.</p>
+</div></header>
+
+<main class="band"><div class="in">
+<div class="panel set">
+<div class="fields">
+<div class="f"><label for="sp">Pokémon</label><input type="search" id="sp" list="dl" autocomplete="off" spellcheck="false" placeholder="Search by name"><datalist id="dl"></datalist><span class="note" id="spinfo" style="margin:0"></span></div>
+<label class="f"><span>Nature</span><select id="nat"></select></label>
+<div class="f"><label for="lvn">Level</label><div class="lv"><input type="number" id="lvn" min="1" max="100"><input type="range" id="lvr" min="1" max="100" aria-label="Level slider"></div></div>
+</div>
+</div>
+
+<div class="tabs" role="tablist" aria-label="Tools">
+<button role="tab" id="tab-build" aria-controls="p-build" data-tab="build">Build stats</button>
+<button role="tab" id="tab-maths" aria-controls="p-maths" data-tab="maths">Show the maths</button>
+<button role="tab" id="tab-find" aria-controls="p-find" data-tab="find">Find an IV</button>
+</div>
+
+<section id="p-build" role="tabpanel" aria-labelledby="tab-build">
+<p class="lead">Set IVs and EVs for each stat and watch the final numbers change.</p>
+<div class="grid">
+<div class="left panel">
+<div class="fig"><svg id="hex" role="img" aria-label="Stat hexagon of final stats"></svg></div>
+<div class="legend">
+<span><i class="sw" style="background:color-mix(in srgb,var(--red) 35%,transparent);border:2px solid var(--red)"></i>This Pokémon</span>
+<span><svg width="20" height="12" aria-hidden="true"><line x1="0" y1="6" x2="20" y2="6" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3"/></svg>Same level, 0 IVs, 0 EVs, neutral nature</span>
+</div>
+<p class="tot" id="tot"></p>
+<div class="evhead"><span>EVs used</span><b id="evt"></b></div>
+<div class="meter"><i id="evm"></i></div>
+<p class="note" id="evnote"></p>
+<div class="row"><button class="btn" id="copy">Copy spread</button><button class="btn" id="reset">Reset</button><span class="note" id="msg" role="status"></span></div>
+</div>
+<div class="right">
+<div class="panel set">
+<div class="pre" style="margin-top:0"><span>IVs</span><button class="btn" data-iv="31">All 31</button><button class="btn" data-iv="0">All 0</button><button class="btn" data-iv="r">Random (wild)</button></div>
+<div class="pre"><span>EVs</span><button class="btn" data-ev="phys">Physical attacker</button><button class="btn" data-ev="spec">Special attacker</button><button class="btn" data-ev="bulk">Bulky</button><button class="btn" data-ev="0">Clear</button></div>
+</div>
+<div class="key">
+<span><i class="sw" style="background:var(--base)"></i>Base stat</span>
+<span><i class="sw" style="background:var(--blue)"></i>IV</span>
+<span><i class="sw" style="background:var(--yel)"></i>EV</span>
+<span><i class="sw" style="background:var(--flat)"></i>Flat bonus</span>
+<span><i class="sw" style="background:var(--red)"></i>Nature boost</span>
+<span><i class="sw lost"></i>Lost to nature</span>
+</div>
+<div class="cards" id="cards"></div>
+</div>
+</div>
+</section>
+
+<section id="p-maths" role="tabpanel" aria-labelledby="tab-maths" hidden>
+<p class="lead">Pick a stat to see the formula worked out step by step with your Pokémon's numbers.</p>
+<div class="chips" data-chips></div>
+<div class="two">
+<div class="panel"><h3 id="mt"></h3><table class="math"><tbody id="math"></tbody></table></div>
+<div class="panel"><h3>What each part does</h3>
+<ul class="expl">
+<li><b>Base stat</b> is fixed for the species and counts double.</li>
+<li><b>IV</b> (0 to 31) is the Pokémon's genes. At level 100 each point adds 1.</li>
+<li><b>EVs</b> come from battling. Every 4 EVs add 1 at level 100, up to 252 per stat and 510 in total.</li>
+<li><b>Level</b> scales the whole sum, so at level 50 IVs and EVs count half.</li>
+<li><b>Nature</b> multiplies the finished stat by 1.1 or 0.9. HP is never affected.</li>
+</ul>
+<p class="note">Change IVs and EVs in the Build stats tab.</p>
+</div>
+</div>
+</section>
+
+<section id="p-find" role="tabpanel" aria-labelledby="tab-find" hidden>
+<p class="lead">The game never shows IV numbers. Type the stat from your summary screen and this works out which IVs could give it.</p>
+<div class="chips" data-chips></div>
+<div class="two">
+<div class="panel">
+<p class="note" id="ctx" style="margin:0 0 12px"></p>
+<div class="fields">
+<label class="f"><span id="obsl">Stat shown in your game</span><input type="number" id="obs" min="1" max="999" style="width:6em"></label>
+<label class="f"><span>EVs in this stat</span><input type="number" id="fev" min="0" max="252" style="width:6em"></label>
+</div>
+<p class="note">A freshly caught Pokémon has 0 EVs.</p>
+</div>
+<div class="panel">
+<p class="res" id="res" style="margin:0"></p>
+<p class="note" id="resn"></p>
+<div class="strip" id="strip" aria-label="Possible IVs from 0 to 31"></div>
+</div>
+</div>
+</section>
+
+<p class="foot">Main-series formula from Ruby and Sapphire onward. Let's Go Pikachu/Eevee and Legends: Arceus train stats differently, so their numbers won't match.</p>
+</div></main>
+
+<script>
+{
+const K=['HP','Attack','Defense','Sp. Atk','Sp. Def','Speed'],SH=['HP','Atk','Def','SpA','SpD','Spe'];
+const SP={Pikachu:[35,55,40,50,50,90],Charizard:[78,84,78,109,85,100],Gengar:[60,65,60,130,75,110],Snorlax:[160,110,65,65,110,30],Lucario:[70,110,70,115,70,90],Gardevoir:[68,65,65,125,115,80],Dragonite:[91,134,95,100,100,80],Garchomp:[108,130,95,80,85,102],Blissey:[255,10,10,75,135,55]};
+const NAT=[['Hardy',0,0],['Lonely',1,2],['Brave',1,5],['Adamant',1,3],['Naughty',1,4],['Bold',2,1],['Docile',0,0],['Relaxed',2,5],['Impish',2,3],['Lax',2,4],['Timid',5,1],['Hasty',5,2],['Serious',0,0],['Jolly',5,3],['Naive',5,4],['Modest',3,1],['Mild',3,2],['Quiet',3,5],['Bashful',0,0],['Rash',3,4],['Calm',4,1],['Gentle',4,2],['Sassy',4,5],['Careful',4,3],['Quirky',0,0]];
+const EVP={phys:[4,252,0,0,0,252],spec:[4,0,0,252,0,252],bulk:[252,0,252,0,4,0],0:[0,0,0,0,0,0]};
+const DEF={sp:'Pikachu',base:[...SP.Pikachu],iv:[31,31,31,31,31,31],ev:[4,0,0,252,0,252],ht:[0,0,0,0,0,0],lvl:50,nat:'Modest',sel:3};
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const r1=x=>Math.round(x*10)/10;
+let S=null;
+try{S=JSON.parse(localStorage.getItem('pkstat1'))}catch(e){}
+if(!S||!Array.isArray(S.base)||S.base.length!==6||!Array.isArray(S.ht))S=JSON.parse(JSON.stringify(DEF));
+const natOf=n=>NAT.find(x=>x[0]===n)||NAT[0];
+const mult=i=>{const[,p,m]=natOf(S.nat);return p===m?100:i===p?110:i===m?90:100};
+const stat=(i,b,iv,ev,L,m)=>{const core=Math.floor((2*b+iv+Math.floor(ev/4))*L/100);if(i===0)return b===1?1:core+L+10;return Math.floor((core+5)*m/100)};
+const eiv=i=>S.ht[i]?31:S.iv[i];
+const fin=i=>stat(i,S.base[i],eiv(i),S.ev[i],S.lvl,mult(i));
+const evSum=()=>S.ev.reduce((a,b)=>a+b,0);
+
+let DEX=new Map(Object.entries(SP).map(([n,b])=>[n.toLowerCase(),{name:n,num:0,b}])),dexState='loading';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+fetch('dex.json').then(r=>{if(!r.ok)throw 0;return r.json()}).then(arr=>{
+DEX=new Map(arr.map(([n,num,...b])=>[String(n).toLowerCase(),{name:String(n),num:+num,b:b.map(Number)}]));
+$('dl').innerHTML=arr.map(a=>`<option value="${esc(a[0])}"></option>`).join('');dexState='ok';render()}).catch(()=>{dexState='fail';render()});
+$('sp').addEventListener('focus',e=>e.target.select());
+$('nat').innerHTML=NAT.map(([n,p,m])=>`<option value="${n}">${n}${p===m?' (neutral)':` (+${SH[p]}, −${SH[m]})`}</option>`).join('');
+$('cards').innerHTML=K.map((k,i)=>`<div class="card">
+<div class="top"><span class="nm">${k}</span><span class="mk" id="m${i}"></span>
+<label class="bs">Base<input type="number" id="b${i}" min="1" max="255"></label>
+<output class="fin" id="f${i}"></output></div>
+<div class="ctl">
+<div class="sl iv"><b>IV</b><input type="range" id="ivr${i}" min="0" max="31" aria-label="${k} IV"><input type="number" id="ivn${i}" min="0" max="31" aria-label="${k} IV value"><button class="ht" id="ht${i}" aria-pressed="false" title="Hyper Training: IV counts as 31">HT</button></div>
+<div class="sl ev"><b>EV</b><input type="range" id="evr${i}" min="0" max="252" step="4" aria-label="${k} EVs"><input type="number" id="evn${i}" min="0" max="252" aria-label="${k} EV value"></div>
+</div>
+<div class="bar" id="bar${i}"></div>
+<p class="sum" id="s${i}"></p></div>`).join('');
+document.querySelectorAll('[data-chips]').forEach(el=>el.innerHTML=K.map((k,i)=>`<button class="chip" data-i="${i}" aria-pressed="false">${k}</button>`).join(''));
+const TABS=['build','maths','find'];
+function showTab(t){if(!TABS.includes(t))t='build';TABS.forEach(x=>{$('p-'+x).hidden=x!==t;const b=$('tab-'+x);b.setAttribute('aria-selected',x===t?'true':'false');b.tabIndex=x===t?0:-1});S.tab=t;try{localStorage.setItem('pkstat1',JSON.stringify(S))}catch(e){}}
+const goTab=t=>{showTab(t);try{if(location.hash!=='#'+t)location.hash=t}catch(e){}};
+window.addEventListener('hashchange',()=>{try{showTab(location.hash.slice(1))}catch(e){}});
+document.querySelector('.tabs').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const n=(TABS.indexOf(S.tab)+(e.key==='ArrowRight'?1:2))%3;goTab(TABS[n]);$('tab-'+TABS[n]).focus()});
+
+let warnT=0;
+function setEv(i,v){v=clamp(Math.round(v),0,252);const room=510-(evSum()-S.ev[i]);if(v>room){v=room;$('evnote').textContent='Capped: a Pokémon can hold 510 EVs in total.';$('evt').classList.add('warn');clearTimeout(warnT);warnT=setTimeout(()=>$('evt').classList.remove('warn'),1200)}S.ev[i]=v}
+
+function onEdit(t){const id=t.id;if(!id)return false;
+if(id==='sp'){const e=DEX.get(t.value.trim().toLowerCase());if(!e)return false;S.sp=e.name;S.base=[...e.b];return true}
+if(id==='nat'){S.nat=t.value;return true}
+const v=parseFloat(t.value);
+if(id==='obs')return true;
+if(id==='fev'){if(Number.isNaN(v))return false;setEv(S.sel,v);return true}
+if(Number.isNaN(v))return false;
+if(id==='lvn'||id==='lvr'){S.lvl=clamp(Math.round(v),1,100);return true}
+const i=+id.slice(-1),p=id.slice(0,-1);
+if(p==='b'){S.base[i]=clamp(Math.round(v),1,255);const e=DEX.get(S.sp.toLowerCase());if(e&&e.b[i]!==S.base[i])S.sp='custom';return true}
+if(p==='ivr'||p==='ivn'){S.iv[i]=clamp(Math.round(v),0,31);S.ht[i]=0;return true}
+if(p==='evr'||p==='evn'){setEv(i,v);return true}
+return false}
+
+const svg=$('hex'),ORD=[0,1,2,5,4,3];
+function draw(){const W=svg.clientWidth,H=svg.clientHeight;if(!W||!H)return;
+const cx=W/2,cy=H/2+2,R=Math.max(50,Math.min(W/2-84,H/2-54));
+const F=K.map((_,i)=>fin(i)),B=K.map((_,i)=>stat(i,S.base[i],0,0,S.lvl,100));
+const top=Math.max(...F,...B,1);const[,p,m]=natOf(S.nat);
+const pt=(k,r)=>{const a=(-90+60*k)*Math.PI/180;return[cx+r*Math.cos(a),cy+r*Math.sin(a)]};
+const ring=f=>ORD.map((_,k)=>pt(k,R*f).map(v=>v.toFixed(1)).join(',')).join(' ');
+const poly=vals=>ORD.map((si,k)=>pt(k,vals[si]/top*R).map(v=>v.toFixed(1)).join(',')).join(' ');
+let g=`<polygon points="${ring(1)}" fill="var(--bg)" stroke="var(--line)"/>`;
+for(const f of[.75,.5,.25])g+=`<polygon points="${ring(f)}" fill="none" stroke="var(--line)"/>`;
+ORD.forEach((_,k)=>{const[x,y]=pt(k,R);g+=`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--line)"/>`});
+g+=`<polygon points="${poly(B)}" fill="none" stroke="var(--mut)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+g+=`<polygon points="${poly(F)}" fill="color-mix(in srgb,var(--red) 24%,transparent)" stroke="var(--red)" stroke-width="2.5" stroke-linejoin="round"/>`;
+ORD.forEach((si,k)=>{const[x,y]=pt(k,F[si]/top*R);g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="var(--red)"/>`});
+ORD.forEach((si,k)=>{const[x,y]=pt(k,R+12);const side=k===0?'t':k===3?'b':'s';
+const anc=side==='s'?(x>cx?'start':'end'):'middle';
+const ny=side==='t'?y-20:side==='b'?y+12:y-4,vy=side==='t'?y-1:side==='b'?y+32:y+16;
+const col=p!==m&&si===p?'var(--red)':p!==m&&si===m?'var(--blue)':'var(--ink)';
+g+=`<text x="${x.toFixed(1)}" y="${ny.toFixed(1)}" text-anchor="${anc}" font-size="13" fill="var(--mut)">${K[si]}</text><text x="${x.toFixed(1)}" y="${vy.toFixed(1)}" text-anchor="${anc}" font-size="20" font-weight="800" fill="${col}">${F[si]}</text>`});
+svg.innerHTML=g}
+const ro=new ResizeObserver(draw);ro.observe(svg);
+
+function maths(){const i=S.sel,b=S.base[i],iv=eiv(i),ev=S.ev[i],L=S.lvl,m=mult(i);
+const e4=Math.floor(ev/4),s1=2*b+iv+e4,core=Math.floor(s1*L/100);
+const rows=[[`2 × base stat ${b}`,2*b],[`+ IV ${iv}${S.ht[i]?' (Hyper Trained)':''}`,2*b+iv],[`+ ${ev} EVs ÷ 4, round down (${e4})`,s1],[`× level ${L} ÷ 100, round down`,core]];
+if(i===0){if(b===1)rows.push(['Base HP 1 is always 1 HP','']);else rows.push([`+ level ${L} + 10`,core+L+10])}
+else{rows.push(['+ 5',core+5]);rows.push([m===100?`× 1.0 (${S.nat} doesn't touch ${SH[i]})`:`× ${m/100} ${S.nat} nature, round down`,Math.floor((core+5)*m/100)])}
+rows.push([`${K[i]}`,fin(i)]);
+$('mt').textContent=`${K[i]} at level ${L}`;
+$('math').innerHTML=rows.map(([a,v])=>`<tr><td>${a}</td><td>${v}</td></tr>`).join('')}
+
+function finder(){const i=S.sel,raw=$('obs').value,v=Math.round(+raw),hits=[];
+for(let x=0;x<32;x++)if(stat(i,S.base[i],x,S.ev[i],S.lvl,mult(i))===v)hits.push(x);
+const n=hits.length;
+$('res').textContent=raw===''?'Enter a stat':n?(n===1?`IV ${hits[0]}`:`IV ${hits[0]}–${hits[n-1]}`):'No IV fits';
+$('resn').textContent=raw===''?'Type the number from the summary screen.':!n?'Check the level, nature and EVs above.':n===1?'Exact match.':n===32?'Every IV gives this number at this level. Level up and check again.':`${n} IVs give this number. Higher levels narrow the range.`;
+$('strip').innerHTML=Array.from({length:32},(_,x)=>`<span class="${hits.includes(x)?'on':''}">${x}</span>`).join('')}
+
+function render(skip){
+const setv=(id,v)=>{const el=$(id);if(el&&el!==skip&&String(el.value)!==String(v))el.value=v};
+setv('sp',S.sp==='custom'?'Custom':S.sp);setv('nat',S.nat);
+const de=DEX.get(S.sp.toLowerCase());
+$('spinfo').textContent=(de?(de.num?`National Dex #${String(de.num).padStart(4,'0')}`:S.sp):'Custom base stats')+(dexState==='ok'?` · ${DEX.size.toLocaleString()} Pokémon and forms`:dexState==='loading'?' · loading full list…':' · full list unavailable');setv('lvn',S.lvl);setv('lvr',S.lvl);
+setv('fev',S.ev[S.sel]);
+$('obsl').textContent=`${K[S.sel]} shown in your game`;
+$('ctx').textContent=`${S.sp==='custom'?'Custom stats':S.sp} · level ${S.lvl} · ${S.nat} nature. Change these at the top.`;
+const[,p,m]=natOf(S.nat),L=S.lvl;
+const parts=K.map((_,i)=>{const b=S.base[i],iv=eiv(i),ev=S.ev[i],f=fin(i),core=Math.floor((2*b+iv+Math.floor(ev/4))*L/100),pre=i?core+5:f;
+return{b2:2*b*L/100,ivp:iv*L/100,evp:Math.floor(ev/4)*L/100,flat:i?5:L+10,nd:i?f-pre:0,f,pre}});
+const basis=Math.max(...parts.map(q=>q.pre+Math.max(0,q.nd)),1),w=x=>(Math.max(0,x)/basis*100).toFixed(2)+'%';
+parts.forEach((q,i)=>{
+setv('b'+i,S.base[i]);setv('ivr'+i,S.iv[i]);setv('ivn'+i,S.iv[i]);setv('evr'+i,S.ev[i]);setv('evn'+i,S.ev[i]);
+const up=p!==m&&i===p,dn=p!==m&&i===m;
+$('f'+i).textContent=q.f;$('f'+i).className='fin'+(up?' up':dn?' dn':'');
+$('m'+i).textContent=up?'▲ +10%':dn?'▼ −10%':'';$('m'+i).className='mk'+(up?' up':dn?' dn':'');
+$('ht'+i).setAttribute('aria-pressed',S.ht[i]?'true':'false');
+$('bar'+i).innerHTML=`<i style="width:${w(q.b2)};background:var(--base)"></i><i style="width:${w(q.ivp)};background:var(--blue)"></i><i style="width:${w(q.evp)};background:var(--yel)"></i><i style="width:${w(q.flat)};background:var(--flat)"></i>`+(q.nd>0?`<i style="width:${w(q.nd)};background:var(--red)"></i>`:q.nd<0?`<i class="lost" style="width:${w(-q.nd)}"></i>`:'');
+$('s'+i).textContent=`≈ ${r1(q.b2)} base + ${r1(q.ivp)} IV${S.ht[i]?' (HT)':''} + ${r1(q.evp)} EV + ${q.flat} ${i?'flat':'(level + 10)'}`+(q.nd?`, nature ${q.nd>0?'+':'−'}${Math.abs(q.nd)}`:'')});
+const es=evSum();$('evt').textContent=`${es} / 510`;$('evm').style.width=(es/510*100).toFixed(1)+'%';
+if(!$('evt').classList.contains('warn'))$('evnote').textContent=es>=508?'Full. Two stats maxed is the usual build.':`${510-es} left to spend (max 252 per stat).`;
+$('tot').innerHTML=`Final total <b>${parts.reduce((a,q)=>a+q.f,0)}</b> · base stat total <b>${S.base.reduce((a,b)=>a+b,0)}</b>`;
+document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',+c.dataset.i===S.sel?'true':'false'));
+draw();maths();finder();
+try{localStorage.setItem('pkstat1',JSON.stringify(S))}catch(e){}}
+
+document.addEventListener('input',e=>{if(e.target.tagName!=='SELECT'&&onEdit(e.target))render(e.target)});
+document.addEventListener('change',e=>{onEdit(e.target);render()});
+document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
+if(t.dataset.tab){goTab(t.dataset.tab);return}
+if(t.classList.contains('ht')){const i=+t.id.slice(-1);S.ht[i]=S.ht[i]?0:1;render();return}
+if(t.dataset.iv){const v=t.dataset.iv;S.iv=S.iv.map(()=>v==='r'?Math.floor(Math.random()*32):+v);S.ht=[0,0,0,0,0,0];render();return}
+if(t.dataset.ev){S.ev=[...EVP[t.dataset.ev]];render();return}
+if(t.classList.contains('chip')){S.sel=+t.dataset.i;$('obs').value=fin(S.sel);render();return}
+if(t.id==='reset'){S=JSON.parse(JSON.stringify(DEF));$('obs').value=fin(S.sel);render();return}
+if(t.id==='copy'){const txt=`${S.sp==='custom'?'Custom':S.sp} @ Lv ${S.lvl}\n${S.nat} Nature\nEVs: ${S.ev.map((v,i)=>v?`${v} ${SH[i]}`:'').filter(Boolean).join(' / ')||'none'}\nIVs: ${K.map((_,i)=>`${eiv(i)} ${SH[i]}`).join(' / ')}\nStats: ${K.map((_,i)=>`${fin(i)} ${SH[i]}`).join(' / ')}`;
+const say=s=>{$('msg').textContent=s;setTimeout(()=>$('msg').textContent='',1800)};
+try{navigator.clipboard.writeText(txt).then(()=>say('Copied'),()=>say('Copy is blocked here'))}catch(err){say('Copy is blocked here')}}});
+
+$('obs').value=fin(S.sel);
+let h='';try{h=location.hash.slice(1)}catch(e){}
+showTab(TABS.includes(h)?h:S.tab);
+render();
+}
+</script>
+</body>
+</html>
