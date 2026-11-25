@@ -52,8 +52,14 @@ svg text{paint-order:stroke;stroke:var(--panel);stroke-width:4px;font-family:Rub
 .set{margin-bottom:14px}
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(10em,1fr));gap:12px}
 .f{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--mut);font-weight:500}
-input[type=search]{width:100%}
-select,input[type=number],input[type=search]{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;min-height:44px;padding:0 10px}
+.combo{position:relative}
+#sp{width:100%}
+#sug{position:absolute;left:0;right:0;top:100%;margin:4px 0 0;padding:4px;list-style:none;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.2);max-height:min(320px,45vh);overflow-y:auto;overscroll-behavior:contain;z-index:30}
+#sug li{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:7px;cursor:pointer;color:var(--ink);font-size:16px}
+#sug li small{color:var(--mut);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+#sug li[aria-selected=true],#sug li:hover{background:var(--panel)}
+#sug li.none{color:var(--mut);cursor:default}
+select,input[type=number],#sp{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;min-height:44px;padding:0 10px}
 input[type=number]{width:4.4em;text-align:right;font-variant-numeric:tabular-nums;padding:0 8px}
 .lv{display:flex;align-items:center;gap:8px}
 input[type=range]{flex:1;height:44px;margin:0;accent-color:var(--c,var(--red));cursor:pointer}
@@ -120,7 +126,7 @@ input[type=range]{flex:1;height:44px;margin:0;accent-color:var(--c,var(--red));c
 <main class="band"><div class="in">
 <div class="panel set">
 <div class="fields">
-<div class="f"><label for="sp">Pokémon</label><input type="search" id="sp" list="dl" autocomplete="off" spellcheck="false" placeholder="Search by name"><datalist id="dl"></datalist><span class="note" id="spinfo" style="margin:0"></span></div>
+<div class="f"><label for="sp">Pokémon</label><div class="combo"><input type="text" id="sp" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="Search by name or number"><ul id="sug" role="listbox" aria-label="Matching Pokémon" hidden></ul></div><span class="note" id="spinfo" style="margin:0"></span></div>
 <label class="f"><span>Nature</span><select id="nat"></select></label>
 <div class="f"><label for="lvn">Level</label><div class="lv"><input type="number" id="lvn" min="1" max="100"><input type="range" id="lvr" min="1" max="100" aria-label="Level slider"></div></div>
 </div>
@@ -230,8 +236,26 @@ let DEX=new Map(Object.entries(SP).map(([n,b])=>[n.toLowerCase(),{name:n,num:0,b
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 fetch('dex.json').then(r=>{if(!r.ok)throw 0;return r.json()}).then(arr=>{
 DEX=new Map(arr.map(([n,num,...b])=>[String(n).toLowerCase(),{name:String(n),num:+num,b:b.map(Number)}]));
-$('dl').innerHTML=arr.map(a=>`<option value="${esc(a[0])}"></option>`).join('');dexState='ok';render()}).catch(()=>{dexState='fail';render()});
-$('sp').addEventListener('focus',e=>e.target.select());
+dexState='ok';render()}).catch(()=>{dexState='fail';render()});
+const sp=$('sp'),sug=$('sug');let cur=[],act=0,blurT=0;
+const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const disp=()=>S.sp==='custom'?'Custom':S.sp;
+function matches(q){q=q.trim().replace(/^#/,'');if(!q)return[];const n=/^\d+$/.test(q)?+q:0,nq=norm(q),a=[],b=[];
+for(const e of DEX.values()){if(n){if(e.num===n)a.push(e);continue}const nm=norm(e.name);if(nm.startsWith(nq))a.push(e);else if(nq&&nm.includes(nq))b.push(e)}
+return a.concat(b).slice(0,40)}
+function showSug(){if(!sp.value.trim()){closeSug();return}
+sug.innerHTML=cur.length?cur.map((e,k)=>`<li role="option" id="o${k}" data-k="${k}" aria-selected="${k===act}">${esc(e.name)}<small>${e.num?'#'+String(e.num).padStart(4,'0'):''}</small></li>`).join(''):'<li class="none">No match. Check the spelling.</li>';
+sug.hidden=false;sp.setAttribute('aria-expanded','true');sp.setAttribute('aria-activedescendant',cur.length?'o'+act:'');
+const a=$('o'+act);if(a)a.scrollIntoView({block:'nearest'})}
+function closeSug(){sug.hidden=true;sp.setAttribute('aria-expanded','false');sp.removeAttribute('aria-activedescendant')}
+function pick(e){if(!e)return;S.sp=e.name;S.base=[...e.b];closeSug();sp.value=e.name;sp.blur();render()}
+sp.addEventListener('focus',()=>{clearTimeout(blurT);sp.placeholder=`${disp()} · type to search`;sp.value=''});
+sp.addEventListener('input',()=>{cur=matches(sp.value);act=0;showSug()});
+sp.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){if(!cur.length)return;e.preventDefault();act=(act+(e.key==='ArrowDown'?1:cur.length-1))%cur.length;showSug()}
+else if(e.key==='Enter'){e.preventDefault();pick(cur[act])}else if(e.key==='Escape'){closeSug();sp.blur()}});
+sp.addEventListener('blur',()=>{blurT=setTimeout(()=>{closeSug();sp.placeholder='Search by name or number';if(document.activeElement!==sp)sp.value=disp()},180)});
+sug.addEventListener('mousedown',e=>e.preventDefault());
+sug.addEventListener('click',e=>{const li=e.target.closest('li[data-k]');if(li)pick(cur[+li.dataset.k])});
 $('nat').innerHTML=NAT.map(([n,p,m])=>`<option value="${n}">${n}${p===m?' (neutral)':` (+${SH[p]}, −${SH[m]})`}</option>`).join('');
 $('cards').innerHTML=K.map((k,i)=>`<div class="card">
 <div class="top"><span class="nm">${k}</span><span class="mk" id="m${i}"></span>
@@ -254,7 +278,7 @@ let warnT=0;
 function setEv(i,v){v=clamp(Math.round(v),0,252);const room=510-(evSum()-S.ev[i]);if(v>room){v=room;$('evnote').textContent='Capped: a Pokémon can hold 510 EVs in total.';$('evt').classList.add('warn');clearTimeout(warnT);warnT=setTimeout(()=>$('evt').classList.remove('warn'),1200)}S.ev[i]=v}
 
 function onEdit(t){const id=t.id;if(!id)return false;
-if(id==='sp'){const e=DEX.get(t.value.trim().toLowerCase());if(!e)return false;S.sp=e.name;S.base=[...e.b];return true}
+if(id==='sp')return false;
 if(id==='nat'){S.nat=t.value;return true}
 const v=parseFloat(t.value);
 if(id==='obs')return true;
@@ -307,7 +331,7 @@ $('strip').innerHTML=Array.from({length:32},(_,x)=>`<span class="${hits.includes
 
 function render(skip){
 const setv=(id,v)=>{const el=$(id);if(el&&el!==skip&&String(el.value)!==String(v))el.value=v};
-setv('sp',S.sp==='custom'?'Custom':S.sp);setv('nat',S.nat);
+if(document.activeElement!==$('sp'))setv('sp',S.sp==='custom'?'Custom':S.sp);setv('nat',S.nat);
 const de=DEX.get(S.sp.toLowerCase());
 $('spinfo').textContent=(de?(de.num?`National Dex #${String(de.num).padStart(4,'0')}`:S.sp):'Custom base stats')+(dexState==='ok'?` · ${DEX.size.toLocaleString()} Pokémon and forms`:dexState==='loading'?' · loading full list…':' · full list unavailable');setv('lvn',S.lvl);setv('lvr',S.lvl);
 setv('fev',S.ev[S.sel]);
