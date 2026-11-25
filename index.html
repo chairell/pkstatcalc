@@ -58,7 +58,7 @@ svg text{paint-order:stroke;stroke:var(--panel);stroke-width:4px;font-family:Rub
 #nateff{font-size:14px;font-weight:600;white-space:nowrap}
 .natbox{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
 .ngrid{display:grid;grid-template-columns:max-content repeat(5,minmax(0,1fr));gap:3px;max-width:640px}
-.ch,.rh{font-size:13px;font-weight:700;color:var(--mut);display:grid;place-items:center;padding:4px 6px;border-radius:6px;white-space:nowrap;transition:background .15s}
+.ch,.rh{font-size:13px;font-weight:700;color:var(--mut);display:flex;align-items:center;justify-content:center;padding:4px 6px;border-radius:6px;white-space:nowrap;transition:background .15s}
 .ch.on,.ch.hl{color:var(--blue);background:color-mix(in srgb,var(--blue) 13%,transparent)}
 .rh.on,.rh.hl{color:var(--red);background:color-mix(in srgb,var(--red) 13%,transparent)}
 .nc{position:relative;font:inherit;font-size:14px;letter-spacing:-.01em;min-height:44px;padding:0 2px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -67,9 +67,27 @@ svg text{paint-order:stroke;stroke:var(--panel);stroke-width:4px;font-family:Rub
 .nc.fit::after{content:'';position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--yel)}
 .nc[aria-pressed=true]{background:var(--hdr);border-color:var(--hdr);color:#fff;font-weight:700}
 .natfx{margin:12px 0 0;font-size:15px}
+@media(min-width:900px){.natwrap{display:grid;grid-template-columns:minmax(0,640px) minmax(0,1fr);gap:28px;align-items:center}.natside .natfx{margin-top:0;font-size:16px;line-height:1.6}}
+@media(max-width:420px){.ngrid{gap:2px}.rh,.ch{padding:4px 2px}.pm{display:none}.rh{color:color-mix(in srgb,var(--red) 75%,var(--mut))}.ch{color:color-mix(in srgb,var(--blue) 75%,var(--mut))}.nc{letter-spacing:-.03em;padding:0}.nc.fit::after{top:3px;right:3px;width:6px;height:6px}}
+@media(max-width:380px){.set.panel{padding:10px}.natbox .ngrid{margin-inline:-4px}.nc{border:0;box-shadow:inset 0 0 0 1px var(--line)}.nc[aria-pressed=true]{box-shadow:none}}
 .natfx b{font-variant-numeric:tabular-nums}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--yel);margin-right:6px;vertical-align:1px}
 @media(max-width:480px){.nc{font-size:13px;letter-spacing:-.02em;padding:0}.ch,.rh{padding:4px 3px}}
+.idc{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg)}
+.emb{flex:none;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;color:#fff;font-size:24px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.idt{display:flex;flex-direction:column;gap:4px}
+.idname{font-size:20px;font-weight:800;line-height:1.1;overflow-wrap:anywhere}
+.idsub,.spline{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--mut)}
+.ty{font-style:normal;font-size:13px;font-weight:700;padding:1px 9px;border-radius:999px;white-space:nowrap;line-height:1.6}
+textarea{display:block;width:100%;font:16px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical}
+.copyrow{display:flex;gap:8px}
+.copyrow input{flex:1;font:inherit;font-size:16px;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);text-overflow:ellipsis}
+.btn.pri{background:var(--hdr);border-color:var(--hdr);color:#fff;font-weight:600}
+.team{display:grid;gap:6px;margin-top:10px}
+.team button{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left}
+.team small{color:var(--mut);font-size:13px}
+.short{display:none}
+@media(max-width:480px){.long{display:none}.short{display:inline}}
 .combo{position:relative}
 #sp{width:100%}
 #sug{position:absolute;left:0;right:0;top:100%;margin:4px 0 0;padding:4px;list-style:none;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.2);max-height:min(320px,45vh);overflow-y:auto;overscroll-behavior:contain;z-index:30}
@@ -149,23 +167,25 @@ input[type=range]{flex:1;height:44px;margin:0;accent-color:var(--c,var(--red));c
 <div class="f"><label for="lvn">Level</label><div class="lv"><input type="number" id="lvn" min="1" max="100"><input type="range" id="lvr" min="1" max="100" aria-label="Level slider"></div></div>
 </div>
 <div class="natbox" id="natbox">
-<p class="note" style="margin:0 0 10px">Each row raises a stat by 10%, each column lowers one by 10%. The grey diagonal is neutral. Tap a nature to pick it.</p>
-<div class="ngrid" id="ngrid" aria-label="Nature chart"></div>
-<p class="natfx" id="natfx"></p>
-<p class="note" id="natfit"></p>
+<p class="note" style="margin:0 0 10px">Each row raises a stat by 10% (red), each column lowers one by 10% (blue). The grey diagonal is neutral. Tap a nature to pick it.</p>
+<div class="natwrap"><div class="ngrid" id="ngrid" aria-label="Nature chart"></div>
+<div class="natside"><p class="natfx" id="natfx"></p>
+<p class="note" id="natfit"></p></div></div>
 </div>
 </div>
 
 <div class="tabs" role="tablist" aria-label="Tools">
-<button role="tab" id="tab-build" aria-controls="p-build" data-tab="build">Build stats</button>
-<button role="tab" id="tab-maths" aria-controls="p-maths" data-tab="maths">Show the maths</button>
-<button role="tab" id="tab-find" aria-controls="p-find" data-tab="find">Find an IV</button>
+<button role="tab" id="tab-build" aria-controls="p-build" data-tab="build"><span class="long">Build stats</span><span class="short">Build</span></button>
+<button role="tab" id="tab-maths" aria-controls="p-maths" data-tab="maths"><span class="long">Show the maths</span><span class="short">Maths</span></button>
+<button role="tab" id="tab-find" aria-controls="p-find" data-tab="find"><span class="long">Find an IV</span><span class="short">Find IV</span></button>
+<button role="tab" id="tab-share" aria-controls="p-share" data-tab="share"><span class="long">Share &amp; export</span><span class="short">Share</span></button>
 </div>
 
 <section id="p-build" role="tabpanel" aria-labelledby="tab-build">
 <p class="lead">Set IVs and EVs for each stat and watch the final numbers change.</p>
 <div class="grid">
 <div class="left panel">
+<div class="idc" id="idc"></div>
 <div class="fig"><svg id="hex" role="img" aria-label="Stat hexagon of final stats"></svg></div>
 <div class="legend">
 <span><i class="sw" style="background:color-mix(in srgb,var(--red) 35%,transparent);border:2px solid var(--red)"></i>This Pokémon</span>
@@ -175,7 +195,7 @@ input[type=range]{flex:1;height:44px;margin:0;accent-color:var(--c,var(--red));c
 <div class="evhead"><span>EVs used</span><b id="evt"></b></div>
 <div class="meter"><i id="evm"></i></div>
 <p class="note" id="evnote"></p>
-<div class="row"><button class="btn" id="copy">Copy spread</button><button class="btn" id="reset">Reset</button><span class="note" id="msg" role="status"></span></div>
+<div class="row"><button class="btn" data-tab="share">Share or export</button><button class="btn" id="reset">Reset</button><span class="note" id="msg" role="status"></span></div>
 </div>
 <div class="right">
 <div class="panel set">
@@ -233,6 +253,28 @@ input[type=range]{flex:1;height:44px;margin:0;accent-color:var(--c,var(--red));c
 </div>
 </section>
 
+<section id="p-share" role="tabpanel" aria-labelledby="tab-share" hidden>
+<p class="lead">Send your exact build to a friend, or move it in and out of Pokémon Showdown.</p>
+<div class="two">
+<div class="panel">
+<h3>Share link</h3>
+<p class="note" style="margin:0 0 10px">Opens this Pokémon with the same level, nature, IVs and EVs.</p>
+<div class="copyrow"><input type="text" id="link" readonly aria-label="Share link"><button class="btn pri" id="copylink">Copy link</button></div>
+<h3 style="margin-top:22px">Export to Showdown</h3>
+<textarea id="sdout" readonly rows="6" aria-label="Showdown export text"></textarea>
+<div class="row" style="margin-top:8px"><button class="btn pri" id="copysd">Copy text</button><span class="note" id="msg2" role="status"></span></div>
+</div>
+<div class="panel">
+<h3>Import from Showdown</h3>
+<p class="note" style="margin:0 0 10px">Paste one Pokémon or a whole team from Showdown's Import/Export box. Items, abilities and moves are ignored.</p>
+<textarea id="sdin" rows="8" aria-label="Showdown text to import" placeholder="Garchomp @ Choice Scarf&#10;Ability: Rough Skin&#10;Level: 50&#10;EVs: 4 HP / 252 Atk / 252 Spe&#10;Jolly Nature&#10;- Earthquake"></textarea>
+<div class="row" style="margin-top:8px"><button class="btn pri" id="sdload">Load</button><button class="btn" id="sdclear">Clear</button></div>
+<p class="note" id="sdmsg" role="status"></p>
+<div class="team" id="team"></div>
+</div>
+</div>
+</section>
+
 <p class="foot">Main-series formula from Ruby and Sapphire onward. Let's Go Pikachu/Eevee and Legends: Arceus train stats differently, so their numbers won't match.</p>
 </div></main>
 
@@ -256,11 +298,26 @@ const eiv=i=>S.ht[i]?31:S.iv[i];
 const fin=i=>stat(i,S.base[i],eiv(i),S.ev[i],S.lvl,mult(i));
 const evSum=()=>S.ev.reduce((a,b)=>a+b,0);
 
-let DEX=new Map(Object.entries(SP).map(([n,b])=>[n.toLowerCase(),{name:n,num:0,b}])),dexState='loading';
+let DEX=new Map(Object.entries(SP).map(([n,b])=>[n.toLowerCase(),{name:n,num:0,b,t:[]}])),dexState='loading';
+const TC={Normal:'#A8A77A',Fire:'#EE8130',Water:'#6390F0',Electric:'#F7D02C',Grass:'#7AC74C',Ice:'#96D9D6',Fighting:'#C22E28',Poison:'#A33EA1',Ground:'#E2BF65',Flying:'#A98FF3',Psychic:'#F95587',Bug:'#A6B91A',Rock:'#B6A136',Ghost:'#735797',Dragon:'#6F35FC',Dark:'#705746',Steel:'#B7B7CE',Fairy:'#D685AD'};
+const inkOn=h=>{const n=parseInt(h.slice(1),16);return(0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))>165?'#1a1a1a':'#fff'};
+const pill=t=>{const c=TC[t]||'#888';return`<i class="ty" style="background:${c};color:${inkOn(c)}">${t}</i>`};
+let pendSp=null;
+{let q=null;try{q=new URLSearchParams(location.search)}catch(e){}
+if(q&&q.has('p')){const nums=(v,n,lo,hi)=>{const a=String(v||'').split('.').map(Number);return a.length===n&&a.every(Number.isFinite)?a.map(x=>clamp(Math.round(x),lo,hi)):null};
+const T=JSON.parse(JSON.stringify(DEF));T.tab=S.tab;T.natOpen=S.natOpen;const pv=q.get('p');
+if(pv==='custom'){const b=nums(q.get('b'),6,1,255);if(b){T.sp='custom';T.base=b}}else if(pv){const e=DEX.get(pv.toLowerCase());if(e){T.sp=e.name;T.base=[...e.b]}else{T.sp=pv.slice(0,40);pendSp=pv}}
+const l=+q.get('l');if(l)T.lvl=clamp(Math.round(l),1,100);
+const n=NAT.find(x=>x[0]===q.get('n'));if(n)T.nat=n[0];
+const iv=nums(q.get('iv'),6,0,31);if(iv)T.iv=iv;
+const ev=nums(q.get('ev'),6,0,252);if(ev){let left=510;T.ev=ev.map(v=>{v=Math.min(v,left);left-=v;return v})}
+const ht=q.get('ht');if(ht&&/^[01]{6}$/.test(ht))T.ht=[...ht].map(Number);
+S=T;try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}}
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 fetch('dex.json').then(r=>{if(!r.ok)throw 0;return r.json()}).then(arr=>{
-DEX=new Map(arr.map(([n,num,...b])=>[String(n).toLowerCase(),{name:String(n),num:+num,b:b.map(Number)}]));
-dexState='ok';render()}).catch(()=>{dexState='fail';render()});
+DEX=new Map(arr.map(([n,num,h,a,d,sa,sd,sp,ty])=>[String(n).toLowerCase(),{name:String(n),num:+num,b:[h,a,d,sa,sd,sp].map(Number),t:String(ty||'').split('/').filter(x=>TC[x])}]));
+dexState='ok';if(pendSp){const e=findSp(pendSp);if(e){S.sp=e.name;S.base=[...e.b]}else{S.sp='custom'}pendSp=null}render()}).catch(()=>{dexState='fail';if(pendSp){S.sp='custom';pendSp=null}render()});
+function findSp(name){const k=String(name).trim().toLowerCase();if(DEX.has(k))return DEX.get(k);const n=norm(k);for(const e of DEX.values())if(norm(e.name)===n)return e;return null}
 const sp=$('sp'),sug=$('sug');let cur=[],act=0,blurT=0;
 const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 const disp=()=>S.sp==='custom'?'Custom':S.sp;
@@ -283,7 +340,7 @@ sug.addEventListener('click',e=>{const li=e.target.closest('li[data-k]');if(li)p
 const MS=[1,2,3,4,5],DIAG={1:'Hardy',2:'Docile',3:'Bashful',4:'Quirky',5:'Serious'};
 const natAt=(p,m)=>p===m?DIAG[p]:NAT.find(x=>x[1]===p&&x[2]===m)[0];
 const ngrid=$('ngrid');
-ngrid.innerHTML='<span></span>'+MS.map(m=>`<span class="ch" data-c="${m}">−${SH[m]}</span>`).join('')+MS.map(p=>`<span class="rh" data-r="${p}">+${SH[p]}</span>`+MS.map(m=>{const n=natAt(p,m);return`<button type="button" class="nc${p===m?' neu':''}" data-nat="${n}" data-r="${p}" data-c="${m}" aria-pressed="false" title="${n}: ${p===m?'neutral':`+${SH[p]}, −${SH[m]}`}">${n}</button>`}).join('')).join('');
+ngrid.innerHTML='<span></span>'+MS.map(m=>`<span class="ch" data-c="${m}"><span class="pm">−</span>${SH[m]}</span>`).join('')+MS.map(p=>`<span class="rh" data-r="${p}"><span class="pm">+</span>${SH[p]}</span>`+MS.map(m=>{const n=natAt(p,m);return`<button type="button" class="nc${p===m?' neu':''}" data-nat="${n}" data-r="${p}" data-c="${m}" aria-pressed="false" title="${n}: ${p===m?'neutral':`+${SH[p]}, −${SH[m]}`}">${n}</button>`}).join('')).join('');
 const clearHl=()=>ngrid.querySelectorAll('.hl').forEach(x=>x.classList.remove('hl'));
 ngrid.addEventListener('pointerover',e=>{const c=e.target.closest('.nc');clearHl();if(c&&!c.classList.contains('neu'))ngrid.querySelectorAll(`.rh[data-r="${c.dataset.r}"],.ch[data-c="${c.dataset.c}"]`).forEach(x=>x.classList.add('hl'))});
 ngrid.addEventListener('pointerleave',clearHl);
@@ -299,11 +356,11 @@ $('cards').innerHTML=K.map((k,i)=>`<div class="card">
 <div class="bar" id="bar${i}"></div>
 <p class="sum" id="s${i}"></p></div>`).join('');
 document.querySelectorAll('[data-chips]').forEach(el=>el.innerHTML=K.map((k,i)=>`<button class="chip" data-i="${i}" aria-pressed="false">${k}</button>`).join(''));
-const TABS=['build','maths','find'];
+const TABS=['build','maths','find','share'];
 function showTab(t){if(!TABS.includes(t))t='build';TABS.forEach(x=>{$('p-'+x).hidden=x!==t;const b=$('tab-'+x);b.setAttribute('aria-selected',x===t?'true':'false');b.tabIndex=x===t?0:-1});S.tab=t;try{localStorage.setItem('pkstat1',JSON.stringify(S))}catch(e){}}
 const goTab=t=>{showTab(t);try{if(location.hash!=='#'+t)location.hash=t}catch(e){}};
 window.addEventListener('hashchange',()=>{try{showTab(location.hash.slice(1))}catch(e){}});
-document.querySelector('.tabs').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const n=(TABS.indexOf(S.tab)+(e.key==='ArrowRight'?1:2))%3;goTab(TABS[n]);$('tab-'+TABS[n]).focus()});
+document.querySelector('.tabs').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const n=(TABS.indexOf(S.tab)+(e.key==='ArrowRight'?1:TABS.length-1))%TABS.length;goTab(TABS[n]);$('tab-'+TABS[n]).focus()});
 
 let warnT=0;
 function setEv(i,v){v=clamp(Math.round(v),0,252);const room=510-(evSum()-S.ev[i]);if(v>room){v=room;$('evnote').textContent='Capped: a Pokémon can hold 510 EVs in total.';$('evt').classList.add('warn');clearTimeout(warnT);warnT=setTimeout(()=>$('evt').classList.remove('warn'),1200)}S.ev[i]=v}
@@ -360,6 +417,28 @@ $('res').textContent=raw===''?'Enter a stat':n?(n===1?`IV ${hits[0]}`:`IV ${hits
 $('resn').textContent=raw===''?'Type the number from the summary screen.':!n?'Check the level, nature and EVs above.':n===1?'Exact match.':n===32?'Every IV gives this number at this level. Level up and check again.':`${n} IVs give this number. Higher levels narrow the range.`;
 $('strip').innerHTML=Array.from({length:32},(_,x)=>`<span class="${hits.includes(x)?'on':''}">${x}</span>`).join('')}
 
+const SITE=(()=>{try{if(/github\.io$/.test(location.hostname)||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))return location.origin+location.pathname}catch(e){}return'https://chairell.github.io/pkstatcalc/'})();
+function shareURL(){const q=new URLSearchParams();q.set('p',S.sp);if(S.sp==='custom')q.set('b',S.base.join('.'));q.set('l',S.lvl);q.set('n',S.nat);q.set('iv',S.iv.join('.'));q.set('ev',S.ev.join('.'));if(S.ht.some(Boolean))q.set('ht',S.ht.join(''));return SITE+'?'+q.toString()}
+function sdText(){const L=[S.sp==='custom'?'Custom':S.sp,`Level: ${S.lvl}`];const ev=S.ev.map((v,i)=>v?`${v} ${SH[i]}`:'').filter(Boolean);if(ev.length)L.push('EVs: '+ev.join(' / '));L.push(`${S.nat} Nature`);const iv=K.map((_,i)=>eiv(i)<31?`${eiv(i)} ${SH[i]}`:'').filter(Boolean);if(iv.length)L.push('IVs: '+iv.join(' / '));return L.join('\n')}
+function parseSet(txt){const lines=txt.split('\n').map(l=>l.trim()).filter(Boolean);if(!lines.length)return null;
+const head=lines[0].split(' @ ')[0].trim().replace(/\s*\((M|F)\)\s*$/i,'');const pm=head.match(/\(([^()]+)\)\s*$/);const name=(pm?pm[1]:head).trim();
+const set={name,e:findSp(name),lvl:100,nat:'Hardy',ev:[0,0,0,0,0,0],iv:[31,31,31,31,31,31]};
+for(const l of lines.slice(1)){let m;
+if(m=l.match(/^Level:\s*(\d+)/i))set.lvl=clamp(+m[1],1,100);
+else if(m=l.match(/^(EVs|IVs):\s*(.+)$/i)){const arr=m[1].toLowerCase()==='evs'?set.ev:set.iv,hi=arr===set.ev?252:31;for(const part of m[2].split('/')){const q=part.trim().match(/^(\d+)\s+([A-Za-z]+)/);if(!q)continue;const i=SH.findIndex(x=>x.toLowerCase()===q[2].toLowerCase());if(i>=0)arr[i]=clamp(+q[1],0,hi)}}
+else if(m=l.match(/^([A-Za-z]+)\s+Nature\b/i)){const n=NAT.find(x=>x[0].toLowerCase()===m[1].toLowerCase());if(n)set.nat=n[0]}}
+return set}
+let teamSets=[];
+function applySet(set){const e=set.e;S.sp=e.name;S.base=[...e.b];S.lvl=set.lvl;S.nat=set.nat;S.iv=[...set.iv];S.ht=[0,0,0,0,0,0];let left=510;S.ev=set.ev.map(v=>{v=Math.min(v,left);left-=v;return v});$('obs').value=fin(S.sel);render();goTab('build');try{window.scrollTo({top:0,behavior:'smooth'})}catch(err){}}
+function importText(){const blocks=$('sdin').value.replace(/\r/g,'').split(/\n\s*\n/).map(b=>b.trim()).filter(Boolean);teamSets=blocks.map(parseSet).filter(Boolean);$('team').innerHTML='';
+if(!teamSets.length){$('sdmsg').textContent='Paste some Showdown text first.';return}
+if(teamSets.length===1){const t=teamSets[0];if(!t.e){$('sdmsg').textContent=`Couldn't find a Pokémon called "${t.name}". Check the first line.`;return}$('sdmsg').textContent='';applySet(t);return}
+$('sdmsg').textContent=`Found ${teamSets.length} Pokémon. Pick one to load.`;
+$('team').innerHTML=teamSets.map((t,k)=>`<button class="btn" data-team="${k}"${t.e?'':' disabled'}><span>${esc(t.e?t.e.name:t.name)}</span><small>${t.e?`Lv ${t.lvl} · ${t.nat}`:'not found'}</small></button>`).join('')}
+function copyFrom(el,btn,msgEl){const txt=el.value;const done=s=>{msgEl.textContent=s;clearTimeout(copyFrom.t);copyFrom.t=setTimeout(()=>msgEl.textContent='',2200)};
+const manual=()=>{try{el.focus();el.select()}catch(e){}done('Selected. Press and hold to copy.')};
+try{navigator.clipboard.writeText(txt).then(()=>done('Copied'),manual)}catch(e){manual()}}
+
 function render(skip){
 const setv=(id,v)=>{const el=$(id);if(el&&el!==skip&&String(el.value)!==String(v))el.value=v};
 if(document.activeElement!==$('sp'))setv('sp',S.sp==='custom'?'Custom':S.sp);
@@ -375,7 +454,12 @@ const a=S.base[1],s=S.base[3],un=Math.abs(a-s)<10?0:a>s?3:1;
 ngrid.querySelectorAll('.nc').forEach(c=>c.classList.toggle('fit',!!un&&+c.dataset.c===un&&+c.dataset.r!==un));
 $('natfit').innerHTML=un?`<span class="dot"></span>Dots mark common picks for ${S.sp==='custom'?'these base stats':esc(S.sp)}: it's a ${un===3?'physical':'special'} attacker, so lowering ${K[un]}, which it barely uses, costs nothing.`:`${S.sp==='custom'?'These base stats':esc(S.sp)} has similar Attack and Sp. Atk, so the best nature depends on how you use it.`}
 const de=DEX.get(S.sp.toLowerCase());
-$('spinfo').textContent=(de?(de.num?`National Dex #${String(de.num).padStart(4,'0')}`:S.sp):'Custom base stats')+(dexState==='ok'?` · ${DEX.size.toLocaleString()} Pokémon and forms`:dexState==='loading'?' · loading full list…':' · full list unavailable');setv('lvn',S.lvl);setv('lvr',S.lvl);
+const dexno=de&&de.num?`#${String(de.num).padStart(4,'0')}`:'',tys=de?de.t:[];
+$('spinfo').innerHTML=`<span class="spline">${dexno?`<span>${dexno}</span>`:''}${tys.map(pill).join('')}${de?'':'<span>Custom base stats</span>'}<span>${dexState==='ok'?`${DEX.size.toLocaleString()} Pokémon and forms`:dexState==='loading'?'loading full list…':'full list unavailable'}</span></span>`;
+{const c1=TC[tys[0]]||'#8a8a94',c2=TC[tys[1]]||c1,nm=S.sp==='custom'?'Custom':S.sp;
+$('idc').innerHTML=`<span class="emb" style="background:linear-gradient(135deg,${c1} 50%,${c2} 50%)" aria-hidden="true">${esc(nm.charAt(0))}</span><span class="idt"><span class="idname">${esc(nm)}</span><span class="idsub">${dexno?`<span>${dexno}</span>`:''}${tys.map(pill).join('')}<span>Base stat total ${S.base.reduce((a,b)=>a+b,0)}</span></span></span>`;
+$('idc').style.background=`linear-gradient(120deg,color-mix(in srgb,${c1} 16%,var(--bg)),color-mix(in srgb,${c2} 16%,var(--bg)))`}
+setv('link',shareURL());setv('sdout',sdText());setv('lvn',S.lvl);setv('lvr',S.lvl);
 setv('fev',S.ev[S.sel]);
 $('obsl').textContent=`${K[S.sel]} shown in your game`;
 $('ctx').textContent=`${S.sp==='custom'?'Custom stats':S.sp} · level ${S.lvl} · ${S.nat} nature. Change these at the top.`;
@@ -393,7 +477,7 @@ $('bar'+i).innerHTML=`<i style="width:${w(q.b2)};background:var(--base)"></i><i 
 $('s'+i).textContent=`≈ ${r1(q.b2)} base + ${r1(q.ivp)} IV${S.ht[i]?' (HT)':''} + ${r1(q.evp)} EV + ${q.flat} ${i?'flat':'(level + 10)'}`+(q.nd?`, nature ${q.nd>0?'+':'−'}${Math.abs(q.nd)}`:'')});
 const es=evSum();$('evt').textContent=`${es} / 510`;$('evm').style.width=(es/510*100).toFixed(1)+'%';
 if(!$('evt').classList.contains('warn'))$('evnote').textContent=es>=508?'Full. Two stats maxed is the usual build.':`${510-es} left to spend (max 252 per stat).`;
-$('tot').innerHTML=`Final total <b>${parts.reduce((a,q)=>a+q.f,0)}</b> · base stat total <b>${S.base.reduce((a,b)=>a+b,0)}</b>`;
+$('tot').innerHTML=`Final stat total <b>${parts.reduce((a,q)=>a+q.f,0)}</b>`;
 document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',+c.dataset.i===S.sel?'true':'false'));
 draw();maths();finder();
 try{localStorage.setItem('pkstat1',JSON.stringify(S))}catch(e){}}
@@ -409,9 +493,11 @@ if(t.dataset.iv){const v=t.dataset.iv;S.iv=S.iv.map(()=>v==='r'?Math.floor(Math.
 if(t.dataset.ev){S.ev=[...EVP[t.dataset.ev]];render();return}
 if(t.classList.contains('chip')){S.sel=+t.dataset.i;$('obs').value=fin(S.sel);render();return}
 if(t.id==='reset'){S=JSON.parse(JSON.stringify(DEF));$('obs').value=fin(S.sel);render();return}
-if(t.id==='copy'){const txt=`${S.sp==='custom'?'Custom':S.sp} @ Lv ${S.lvl}\n${S.nat} Nature\nEVs: ${S.ev.map((v,i)=>v?`${v} ${SH[i]}`:'').filter(Boolean).join(' / ')||'none'}\nIVs: ${K.map((_,i)=>`${eiv(i)} ${SH[i]}`).join(' / ')}\nStats: ${K.map((_,i)=>`${fin(i)} ${SH[i]}`).join(' / ')}`;
-const say=s=>{$('msg').textContent=s;setTimeout(()=>$('msg').textContent='',1800)};
-try{navigator.clipboard.writeText(txt).then(()=>say('Copied'),()=>say('Copy is blocked here'))}catch(err){say('Copy is blocked here')}}});
+if(t.id==='copylink'){copyFrom($('link'),t,$('msg2'));return}
+if(t.id==='copysd'){copyFrom($('sdout'),t,$('msg2'));return}
+if(t.id==='sdload'){importText();return}
+if(t.id==='sdclear'){$('sdin').value='';$('sdmsg').textContent='';$('team').innerHTML='';teamSets=[];return}
+if(t.dataset.team){const ts=teamSets[+t.dataset.team];if(ts&&ts.e)applySet(ts);return}});
 
 $('obs').value=fin(S.sel);
 let h='';try{h=location.hash.slice(1)}catch(e){}
