@@ -52,6 +52,24 @@ svg text{paint-order:stroke;stroke:var(--panel);stroke-width:4px;font-family:Rub
 .set{margin-bottom:14px}
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(10em,1fr));gap:12px}
 .f{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--mut);font-weight:500}
+.natbtn{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:0 12px;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;cursor:pointer;text-align:left}
+.natbtn i{margin-left:auto;font-style:normal;color:var(--mut);transition:transform .2s}
+.natbtn[aria-expanded=true] i{transform:rotate(180deg)}
+#nateff{font-size:14px;font-weight:600;white-space:nowrap}
+.natbox{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.ngrid{display:grid;grid-template-columns:max-content repeat(5,minmax(0,1fr));gap:3px;max-width:640px}
+.ch,.rh{font-size:13px;font-weight:700;color:var(--mut);display:grid;place-items:center;padding:4px 6px;border-radius:6px;white-space:nowrap;transition:background .15s}
+.ch.on,.ch.hl{color:var(--blue);background:color-mix(in srgb,var(--blue) 13%,transparent)}
+.rh.on,.rh.hl{color:var(--red);background:color-mix(in srgb,var(--red) 13%,transparent)}
+.nc{position:relative;font:inherit;font-size:14px;letter-spacing:-.01em;min-height:44px;padding:0 2px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nc:hover{border-color:var(--mut)}
+.nc.neu{background:var(--panel);color:var(--mut)}
+.nc.fit::after{content:'';position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--yel)}
+.nc[aria-pressed=true]{background:var(--hdr);border-color:var(--hdr);color:#fff;font-weight:700}
+.natfx{margin:12px 0 0;font-size:15px}
+.natfx b{font-variant-numeric:tabular-nums}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--yel);margin-right:6px;vertical-align:1px}
+@media(max-width:480px){.nc{font-size:13px;letter-spacing:-.02em;padding:0}.ch,.rh{padding:4px 3px}}
 .combo{position:relative}
 #sp{width:100%}
 #sug{position:absolute;left:0;right:0;top:100%;margin:4px 0 0;padding:4px;list-style:none;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.2);max-height:min(320px,45vh);overflow-y:auto;overscroll-behavior:contain;z-index:30}
@@ -127,8 +145,14 @@ input[type=range]{flex:1;height:44px;margin:0;accent-color:var(--c,var(--red));c
 <div class="panel set">
 <div class="fields">
 <div class="f"><label for="sp">Pokémon</label><div class="combo"><input type="text" id="sp" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="Search by name or number"><ul id="sug" role="listbox" aria-label="Matching Pokémon" hidden></ul></div><span class="note" id="spinfo" style="margin:0"></span></div>
-<label class="f"><span>Nature</span><select id="nat"></select></label>
+<div class="f"><span>Nature</span><button type="button" class="natbtn" id="natbtn" aria-expanded="true" aria-controls="natbox"><b id="natname"></b><span id="nateff"></span><i aria-hidden="true">▾</i></button></div>
 <div class="f"><label for="lvn">Level</label><div class="lv"><input type="number" id="lvn" min="1" max="100"><input type="range" id="lvr" min="1" max="100" aria-label="Level slider"></div></div>
+</div>
+<div class="natbox" id="natbox">
+<p class="note" style="margin:0 0 10px">Each row raises a stat by 10%, each column lowers one by 10%. The grey diagonal is neutral. Tap a nature to pick it.</p>
+<div class="ngrid" id="ngrid" aria-label="Nature chart"></div>
+<p class="natfx" id="natfx"></p>
+<p class="note" id="natfit"></p>
 </div>
 </div>
 
@@ -256,7 +280,14 @@ else if(e.key==='Enter'){e.preventDefault();pick(cur[act])}else if(e.key==='Esca
 sp.addEventListener('blur',()=>{blurT=setTimeout(()=>{closeSug();sp.placeholder='Search by name or number';if(document.activeElement!==sp)sp.value=disp()},180)});
 sug.addEventListener('mousedown',e=>e.preventDefault());
 sug.addEventListener('click',e=>{const li=e.target.closest('li[data-k]');if(li)pick(cur[+li.dataset.k])});
-$('nat').innerHTML=NAT.map(([n,p,m])=>`<option value="${n}">${n}${p===m?' (neutral)':` (+${SH[p]}, −${SH[m]})`}</option>`).join('');
+const MS=[1,2,3,4,5],DIAG={1:'Hardy',2:'Docile',3:'Bashful',4:'Quirky',5:'Serious'};
+const natAt=(p,m)=>p===m?DIAG[p]:NAT.find(x=>x[1]===p&&x[2]===m)[0];
+const ngrid=$('ngrid');
+ngrid.innerHTML='<span></span>'+MS.map(m=>`<span class="ch" data-c="${m}">−${SH[m]}</span>`).join('')+MS.map(p=>`<span class="rh" data-r="${p}">+${SH[p]}</span>`+MS.map(m=>{const n=natAt(p,m);return`<button type="button" class="nc${p===m?' neu':''}" data-nat="${n}" data-r="${p}" data-c="${m}" aria-pressed="false" title="${n}: ${p===m?'neutral':`+${SH[p]}, −${SH[m]}`}">${n}</button>`}).join('')).join('');
+const clearHl=()=>ngrid.querySelectorAll('.hl').forEach(x=>x.classList.remove('hl'));
+ngrid.addEventListener('pointerover',e=>{const c=e.target.closest('.nc');clearHl();if(c&&!c.classList.contains('neu'))ngrid.querySelectorAll(`.rh[data-r="${c.dataset.r}"],.ch[data-c="${c.dataset.c}"]`).forEach(x=>x.classList.add('hl'))});
+ngrid.addEventListener('pointerleave',clearHl);
+if(S.natOpen===false){$('natbox').hidden=true;$('natbtn').setAttribute('aria-expanded','false')}
 $('cards').innerHTML=K.map((k,i)=>`<div class="card">
 <div class="top"><span class="nm">${k}</span><span class="mk" id="m${i}"></span>
 <label class="bs">Base<input type="number" id="b${i}" min="1" max="255"></label>
@@ -331,7 +362,18 @@ $('strip').innerHTML=Array.from({length:32},(_,x)=>`<span class="${hits.includes
 
 function render(skip){
 const setv=(id,v)=>{const el=$(id);if(el&&el!==skip&&String(el.value)!==String(v))el.value=v};
-if(document.activeElement!==$('sp'))setv('sp',S.sp==='custom'?'Custom':S.sp);setv('nat',S.nat);
+if(document.activeElement!==$('sp'))setv('sp',S.sp==='custom'?'Custom':S.sp);
+{const[,np,nm]=natOf(S.nat),neu=np===nm;
+$('natname').textContent=S.nat;
+$('nateff').innerHTML=neu?'<span style="color:var(--mut)">neutral</span>':`<span class="up">+${SH[np]}</span> <span class="dn">−${SH[nm]}</span>`;
+ngrid.querySelectorAll('.nc').forEach(c=>c.setAttribute('aria-pressed',c.dataset.nat===S.nat?'true':'false'));
+ngrid.querySelectorAll('.rh').forEach(h=>h.classList.toggle('on',!neu&&+h.dataset.r===np));
+ngrid.querySelectorAll('.ch').forEach(h=>h.classList.toggle('on',!neu&&+h.dataset.c===nm));
+const raw=i=>stat(i,S.base[i],eiv(i),S.ev[i],S.lvl,100);
+$('natfx').innerHTML=neu?`<b>${S.nat}</b> is neutral, so no stat changes.`:`<b>${S.nat}</b> on this build: <span class="up">${K[np]} ${raw(np)} → <b>${fin(np)}</b> (+${fin(np)-raw(np)})</span> · <span class="dn">${K[nm]} ${raw(nm)} → <b>${fin(nm)}</b> (−${raw(nm)-fin(nm)})</span>`;
+const a=S.base[1],s=S.base[3],un=Math.abs(a-s)<10?0:a>s?3:1;
+ngrid.querySelectorAll('.nc').forEach(c=>c.classList.toggle('fit',!!un&&+c.dataset.c===un&&+c.dataset.r!==un));
+$('natfit').innerHTML=un?`<span class="dot"></span>Dots mark common picks for ${S.sp==='custom'?'these base stats':esc(S.sp)}: it's a ${un===3?'physical':'special'} attacker, so lowering ${K[un]}, which it barely uses, costs nothing.`:`${S.sp==='custom'?'These base stats':esc(S.sp)} has similar Attack and Sp. Atk, so the best nature depends on how you use it.`}
 const de=DEX.get(S.sp.toLowerCase());
 $('spinfo').textContent=(de?(de.num?`National Dex #${String(de.num).padStart(4,'0')}`:S.sp):'Custom base stats')+(dexState==='ok'?` · ${DEX.size.toLocaleString()} Pokémon and forms`:dexState==='loading'?' · loading full list…':' · full list unavailable');setv('lvn',S.lvl);setv('lvr',S.lvl);
 setv('fev',S.ev[S.sel]);
@@ -360,6 +402,8 @@ document.addEventListener('input',e=>{if(e.target.tagName!=='SELECT'&&onEdit(e.t
 document.addEventListener('change',e=>{onEdit(e.target);render()});
 document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
 if(t.dataset.tab){goTab(t.dataset.tab);return}
+if(t.dataset.nat){S.nat=t.dataset.nat;render();return}
+if(t.id==='natbtn'){const o=$('natbox').hidden;$('natbox').hidden=!o;t.setAttribute('aria-expanded',o?'true':'false');S.natOpen=o;render();return}
 if(t.classList.contains('ht')){const i=+t.id.slice(-1);S.ht[i]=S.ht[i]?0:1;render();return}
 if(t.dataset.iv){const v=t.dataset.iv;S.iv=S.iv.map(()=>v==='r'?Math.floor(Math.random()*32):+v);S.ht=[0,0,0,0,0,0];render();return}
 if(t.dataset.ev){S.ev=[...EVP[t.dataset.ev]];render();return}
